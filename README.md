@@ -125,11 +125,12 @@ pinokio filepicker [<arg>, <arg>, ...]
 
 Where args can be one of the following:
 
-- `title`: (optional) file dialog title.
-- `type`: (optional) which type to select. Either "folder" or "file". If not specified, the value is "file". 
-- `path`: (optional) specify path to open the file dialog from. If not specified, just use the default path.
-- `multiple`: (optional) whether to allow multiple path selection (`true` or `false`). Default is `false`.
-- `filetype`: (optional) file types to accept. you can specify multiple `--filetype` flags. The format must follow `type/extension,extension,extension,...` (Example: `--filetype='image/*.png,*.jpg`)
+- `<arg>`: script flags
+  - `--title`: (optional) file dialog title.
+  - `--type`: (optional) which type to select. Either "folder" or "file". If not specified, the value is "file". 
+  - `--path`: (optional) specify path to open the file dialog from. If not specified, just use the default path.
+  - `--multiple`: (optional) whether to allow multiple path selection (`true` or `false`). Default is `false`.
+  - `--filetype`: (optional) file types to accept. you can specify multiple `--filetype` flags. The format must follow `type/extension,extension,extension,...` (Example: `--filetype='image/*.png,*.jpg`)
 
 ### examples
 
@@ -188,7 +189,7 @@ Send a desktop notification
 pinokio push <message> [<arg>, <arg>, ...]
 ```
 
-- `message`: <string>,
+- `message`: a message to send
 - `<arg>`: script flags
   - `--title`: (optional) push notification title
   - `--subtitle`: (optional) push notification subtitle
