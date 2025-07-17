@@ -25,6 +25,20 @@ class Util {
       }
     })
   }
+  async clipboard(argv) {
+    // pinokio clipboard copy <text>
+    // pinokio clipboard paste
+    if (argv._.length > 1) {
+      let payload = { type: argv._[1] }
+      if (argv._.length > 2) {
+        payload.text = argv._[2]
+      }
+      let response = await axios.post("http://localhost:42000/clipboard", payload)
+      if (response.data && response.data.text) {
+        console.log(response.data.text)
+      }
+    }
+  }
   async push(argv) {
     if (argv._ && argv._.length > 1 && !argv.message) {
       argv.message = argv._[1]

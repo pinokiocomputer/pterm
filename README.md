@@ -14,8 +14,21 @@ npm install -g pterm
 
 prints the current version
 
+### syntax
+
 ```
-pinokio version
+pinokio version <type>
+```
+
+- `type`: may be `terminal`, `pinokiod`, or `pinokio`
+  - `terminal`: returns the pterm version
+  - `pinokiod`: returns the pinokiod version
+  - `pinokio`: returns the pinokio version
+
+### example
+
+```
+pinokio version terminal
 ```
 
 ## start
@@ -178,6 +191,43 @@ pinokio filepicker --filetype='images/*.png,*.jpg,*.jpeg'
 pinokio filepicker --filetype='images/*.png,*.jpg,*.jpeg' --filetype='docs/*.pdf'
 ```
 
+## clipboard
+
+write to or read from clipboard
+
+### syntax
+
+```
+pinokio clipboard copy <text>
+pinokio clipboard paste
+```
+
+
+### examples
+
+#### copy text to clipboard
+
+The following command copies "hello world" to the clipboard
+
+```
+pinokio clipboard copy "hello world"
+```
+
+#### read from clipboard
+
+Assuming the clipboard contains the text 'hello world',
+
+```
+pinokio clipboard paste
+```
+
+will print:
+
+```
+hello world
+```
+
+You can pipe this to other terminal commands to easily access the clipboard content.
 
 ## push
 

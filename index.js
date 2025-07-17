@@ -12,8 +12,33 @@ const util = new Util();
     let cmd = argv._[0].toLowerCase()
     if (cmd === "push") {
       let response = await util.push(argv)
+    } else if (cmd === "clipboard") {
+      await util.clipboard(argv)
     } else if (cmd === "version") {
-      console.log("v" + require('./package.json').version)
+      if (argv._.length > 1) {
+        let app = argv._[1]
+        if (app === "terminal") {
+          console.log("pterm@" + require('./package.json').version)
+        } else if (app === "pinokiod") {
+          try {
+            let r = await fetch("http://localhost:42000/pinokio/version").then((res) => {
+              return res.json()
+            })
+            console.log(`pinokiod@${r.pinokiod}`)
+          } catch (e) {
+          }
+        } else if (app === "pinokio") {
+          try {
+            let r = await fetch("http://localhost:42000/pinokio/version").then((res) => {
+              return res.json()
+            })
+            if (r.pinokio) {
+              console.log(`pinokiod@${r.pinokio}`)
+            }
+          } catch (e) {
+          }
+        }
+      }
     } else if (cmd === "filepicker") {
       await util.filepicker(argv)
     } else if (cmd === "download") {
