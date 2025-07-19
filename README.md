@@ -17,7 +17,7 @@ prints the current version
 ### syntax
 
 ```
-pinokio version <type>
+pterm version <type>
 ```
 
 - `type`: may be `terminal`, `pinokiod`, or `pinokio`
@@ -28,7 +28,7 @@ pinokio version <type>
 ### example
 
 ```
-pinokio version terminal
+pterm version terminal
 ```
 
 ## start
@@ -38,7 +38,7 @@ Start a pinokio script. Arguments can be passed into the script
 ### syntax
 
 ```
-pinokio start <script_path> [<arg1>, <arg2>, ...]
+pterm start <script_path> [<arg1>, <arg2>, ...]
 ```
 
 ### examples
@@ -46,13 +46,13 @@ pinokio start <script_path> [<arg1>, <arg2>, ...]
 Starting a script named `install.js`:
 
 ```
-pinokio start install.js
+pterm start install.js
 ```
 
 Starting a script named `start.js` with parameters:
 
 ```
-pinokio start start.js --port=3000 --model=google/gemma-3n-E4B-it
+pterm start start.js --port=3000 --model=google/gemma-3n-E4B-it
 ```
 
 Above command starts the script `start.js` with the following args:
@@ -88,7 +88,7 @@ Stops a script if running:
 ### syntax
 
 ```
-pinokio stop <script_path>
+pterm stop <script_path>
 ```
 
 
@@ -97,7 +97,7 @@ pinokio stop <script_path>
 Stop the `start.js` script if it's running:
 
 ```
-pinokio stop start.js
+pterm stop start.js
 ```
 
 ## run
@@ -107,7 +107,7 @@ Run a launcher. Equivalent to the user visiting a launcher page. Will run whiche
 ### syntax
 
 ```
-pinokio run <launcher_path>
+pterm run <launcher_path>
 ```
 
 ### examples
@@ -115,13 +115,13 @@ pinokio run <launcher_path>
 Launch the launcher in the current path
 
 ```
-pinokio run .
+pterm run .
 ```
 
 Launch from absolute path
 
 ```
-pinokio run /pinokio/api/test
+pterm run /pinokio/api/test
 ```
 
 ## filepicker
@@ -133,7 +133,7 @@ This API is NOT for uploading the actual files but for submitting file paths.
 ### syntax
 
 ```
-pinokio filepicker [<arg>, <arg>, ...]
+pterm filepicker [<arg>, <arg>, ...]
 ```
 
 Where args can be one of the following:
@@ -150,7 +150,7 @@ Where args can be one of the following:
 #### Select a folder path
 
 ```
-pinokio filepicker --type=folder
+pterm filepicker --type=folder
 ```
 
 #### Select a file path
@@ -158,37 +158,37 @@ pinokio filepicker --type=folder
 The most basic command lets users select a single file:
 
 ```
-pinokio filepicker
+pterm filepicker
 ```
 
 which is equivalent to:
 
 ```
-pinokio filepicker --type=file
+pterm filepicker --type=file
 ```
 
 #### Select multiple files
 
 ```
-pinokio filepicker --multiple
+pterm filepicker --multiple
 ```
 
 #### Open the filepicker from the current path
 
 ```
-pinokio filepicker --path=.
+pterm filepicker --path=.
 ```
 
 #### Open an image filepicker
 
 ```
-pinokio filepicker --filetype='images/*.png,*.jpg,*.jpeg'
+pterm filepicker --filetype='images/*.png,*.jpg,*.jpeg'
 ```
 
 #### Open a filepicker with multiple file types
 
 ```
-pinokio filepicker --filetype='images/*.png,*.jpg,*.jpeg' --filetype='docs/*.pdf'
+pterm filepicker --filetype='images/*.png,*.jpg,*.jpeg' --filetype='docs/*.pdf'
 ```
 
 ## clipboard
@@ -198,8 +198,8 @@ write to or read from clipboard
 ### syntax
 
 ```
-pinokio clipboard copy <text>
-pinokio clipboard paste
+pterm clipboard copy <text>
+pterm clipboard paste
 ```
 
 
@@ -210,7 +210,7 @@ pinokio clipboard paste
 The following command copies "hello world" to the clipboard
 
 ```
-pinokio clipboard copy "hello world"
+pterm clipboard copy "hello world"
 ```
 
 #### read from clipboard
@@ -218,7 +218,7 @@ pinokio clipboard copy "hello world"
 Assuming the clipboard contains the text 'hello world',
 
 ```
-pinokio clipboard paste
+pterm clipboard paste
 ```
 
 will print:
@@ -236,7 +236,7 @@ Send a desktop notification
 ### syntax
 
 ```
-pinokio push <message> [<arg>, <arg>, ...]
+pterm push <message> [<arg>, <arg>, ...]
 ```
 
 - `message`: a message to send
@@ -253,18 +253,18 @@ pinokio push <message> [<arg>, <arg>, ...]
 #### send a simple notification
 
 ```
-pinokio push 'hello world'
+pterm push 'hello world'
 ```
 
 #### notification with sound
 
 ```
-pinokio push 'this is a notification' --sound
+pterm push 'this is a notification' --sound
 ```
 
 #### notification with an image
 
 ```
-pinokio push 'this is an image notification' --image=icon.png
+pterm push 'this is an image notification' --image=icon.png
 ```
 
