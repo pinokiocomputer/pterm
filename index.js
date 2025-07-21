@@ -37,6 +37,16 @@ const util = new Util();
             }
           } catch (e) {
           }
+        } else if (app === "script") {
+          try {
+            let r = await fetch("http://localhost:42000/pinokio/version").then((res) => {
+              return res.json()
+            })
+            if (r.script) {
+              console.log(`${r.script}`)
+            }
+          } catch (e) {
+          }
         }
       }
     } else if (cmd === "filepicker") {

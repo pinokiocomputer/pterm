@@ -24,6 +24,7 @@ pterm version <type>
   - `terminal`: returns the pterm version
   - `pinokiod`: returns the pinokiod version
   - `pinokio`: returns the pinokio version
+  - `script`: returns the valid script version for the current client. used for including in `pinokio.js`
 
 ### example
 

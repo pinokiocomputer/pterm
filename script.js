@@ -2,7 +2,9 @@ const path = require('path')
 const RPC = require('./rpc')
 class Script {
   listen(onKey) {
-    process.stdin.setRawMode(true);
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(true);
+    }
     process.stdin.resume();
     process.stdin.setEncoding('utf8');
 
@@ -17,7 +19,9 @@ class Script {
     };
 
     const cleanup = () => {
-      process.stdin.setRawMode(false);
+      if (process.stdin.isTTY) {
+        process.stdin.setRawMode(false);
+      }
       process.stdin.pause();
       process.stdin.off('data', handler);
     };
