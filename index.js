@@ -2,11 +2,12 @@
 const path = require('path')
 const yargs = require('yargs/yargs')
 const { hideBin } = require('yargs/helpers')
+const argv = yargs(hideBin(process.argv)).parse();
 const Script = require('./script')
 const Util = require('./util')
-const argv = yargs(hideBin(process.argv)).parse();
 const script = new Script();
 const util = new Util();
+const isHttpUri = (value) => typeof value === "string" && /^https?:\/\//i.test(value);
 (async () => {
   if (argv._.length > 0) {
     let cmd = argv._[0].toLowerCase()
@@ -53,6 +54,12 @@ const util = new Util();
       await util.filepicker(argv)
     } else if (cmd === "download") {
       await util.download(argv)
+    } else if (cmd === "search") {
+      await util.search(argv)
+    } else if (cmd === "status") {
+      await util.status(argv)
+    } else if (cmd === "logs") {
+      await util.logs(argv)
     } else if (cmd === "stop") {
       await script.stop(argv)
     } else if (cmd === "start") {
@@ -65,12 +72,13 @@ const util = new Util();
     } else if (cmd === "run") {
       if (argv._.length > 1) {
         let _uri = argv._[1]
-        const uri = path.resolve(process.cwd(), _uri)
+        const uri = isHttpUri(_uri) ? _uri : path.resolve(process.cwd(), _uri)
         // try downloading first
-        if (path.isAbsolute(uri)) {
-        } else {
-          // url
-          await util.download(argv)
+        if (isHttpUri(uri)) {
+          await util.download({
+            ...argv,
+            no_exit: true
+          })
         }
         while(true) {
           let default_uri = await script.default_script(uri)
@@ -87,9 +95,13 @@ const util = new Util();
                 break
               }
             } else {
-              // open in browser
-              let response = await util.open_url(default_uri)  
-              console.log({ response })
+              // default behavior is no browser side effect.
+              if (argv.open) {
+                let response = await util.open_url(default_uri)
+                console.log({ response })
+              } else {
+                console.log(default_uri)
+              }
               break
             }
           } else {

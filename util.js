@@ -3,6 +3,55 @@ const axios = require('axios')
 const path = require('path')
 const RPC = require('./rpc')
 class Util {
+  printJson(payload) {
+    process.stdout.write(JSON.stringify(payload, null, 2))
+    process.stdout.write("\n")
+  }
+  async search(argv) {
+    const query = (argv._.slice(1).join(" ") || argv.q || "").trim()
+    const response = await axios.get("http://localhost:42000/apps/search", {
+      params: { q: query }
+    })
+    this.printJson(response.data)
+  }
+  async status(argv) {
+    if (argv._.length <= 1) {
+      console.error("required argument: <app_id>")
+      return
+    }
+    const appId = argv._[1]
+    const probe = argv.probe ? "1" : "0"
+    const timeout = argv.timeout ? Number.parseInt(String(argv.timeout), 10) : null
+    const params = new URLSearchParams()
+    params.set("probe", probe)
+    if (Number.isFinite(timeout) && timeout > 0) {
+      params.set("timeout", String(timeout))
+    }
+    const url = `http://localhost:42000/apps/status/${encodeURIComponent(appId)}?${params.toString()}`
+    const response = await axios.get(url)
+    this.printJson(response.data)
+  }
+  async logs(argv) {
+    if (argv._.length <= 1) {
+      console.error("required argument: <app_id>")
+      return
+    }
+    const appId = argv._[1]
+    const params = new URLSearchParams()
+    if (argv.script) {
+      params.set("script", String(argv.script))
+    }
+    if (argv.tail) {
+      const tail = Number.parseInt(String(argv.tail), 10)
+      if (Number.isFinite(tail) && tail > 0) {
+        params.set("tail", String(tail))
+      }
+    }
+    const suffix = params.toString() ? `?${params.toString()}` : ""
+    const url = `http://localhost:42000/apps/logs/${encodeURIComponent(appId)}${suffix}`
+    const response = await axios.get(url)
+    this.printJson(response.data)
+  }
   async filepicker(argv) {
     const rpc = new RPC("ws://localhost:42000")
     if (argv.path) {
@@ -104,7 +153,9 @@ class Util {
           }
         })
       }
-      process.exit()
+      if (!argv.no_exit) {
+        process.exit()
+      }
     } else {
       console.error("required argument: <uri>")
     }
