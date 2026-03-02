@@ -142,7 +142,12 @@ Search installed or available apps.
 ```
 pterm search [query words...]
 pterm search --q="<query>"
+pterm search "<query>" [--mode=balanced|broad|strict] [--min-match=<n>] [--limit=<n>]
 ```
+
+- `--mode`: (optional) search strategy. `broad` (default), `balanced`, or `strict`.
+- `--min-match`: (optional) minimum number of query terms an app should match.
+- `--limit`: (optional) max number of app results to return.
 
 ### examples
 
@@ -152,6 +157,10 @@ pterm search comfyui
 
 ```
 pterm search --q="text generation"
+```
+
+```
+pterm search "tts speech synthesis" --mode=balanced --min-match=2 --limit=8
 ```
 
 ## status

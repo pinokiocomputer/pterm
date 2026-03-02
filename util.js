@@ -9,8 +9,27 @@ class Util {
   }
   async search(argv) {
     const query = (argv._.slice(1).join(" ") || argv.q || "").trim()
+    const params = { q: query }
+    const mode = typeof argv.mode === "string" ? argv.mode.trim().toLowerCase() : ""
+    const minMatchRaw = argv.minMatch ?? argv["min-match"] ?? argv.min_match
+    const limitRaw = argv.limit
+    if (mode === "broad" || mode === "balanced" || mode === "strict") {
+      params.mode = mode
+    }
+    if (minMatchRaw !== undefined && minMatchRaw !== null && minMatchRaw !== "") {
+      const minMatch = Number.parseInt(String(minMatchRaw), 10)
+      if (Number.isFinite(minMatch) && minMatch > 0) {
+        params.min_match = String(minMatch)
+      }
+    }
+    if (limitRaw !== undefined && limitRaw !== null && limitRaw !== "") {
+      const limit = Number.parseInt(String(limitRaw), 10)
+      if (Number.isFinite(limit) && limit > 0) {
+        params.limit = String(limit)
+      }
+    }
     const response = await axios.get("http://localhost:42000/apps/search", {
-      params: { q: query }
+      params
     })
     this.printJson(response.data)
   }
