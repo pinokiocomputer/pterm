@@ -108,8 +108,10 @@ Run a launcher. Equivalent to the user visiting a launcher page. Will run whiche
 ### syntax
 
 ```
-pterm run <launcher_path>
+pterm run <launcher_path_or_uri> [--open]
 ```
+
+- `--open`: (optional) open URL results in the browser. Default behavior is to print the URL to stdout without opening a browser.
 
 ### examples
 
@@ -123,6 +125,79 @@ Launch from absolute path
 
 ```
 pterm run /pinokio/api/test
+```
+
+Run from a launcher URI and auto-open the resulting URL in browser
+
+```
+pterm run https://github.com/example/my-launcher --open
+```
+
+## search
+
+Search installed or available apps.
+
+### syntax
+
+```
+pterm search [query words...]
+pterm search --q="<query>"
+```
+
+### examples
+
+```
+pterm search comfyui
+```
+
+```
+pterm search --q="text generation"
+```
+
+## status
+
+Get app status by app id.
+
+### syntax
+
+```
+pterm status <app_id> [--probe] [--timeout=<ms>]
+```
+
+- `--probe`: (optional) actively probe app health.
+- `--timeout`: (optional) probe timeout in milliseconds.
+
+### examples
+
+```
+pterm status comfyanonymous-comfyui
+```
+
+```
+pterm status comfyanonymous-comfyui --probe --timeout=5000
+```
+
+## logs
+
+Get app logs by app id.
+
+### syntax
+
+```
+pterm logs <app_id> [--script=<name>] [--tail=<lines>]
+```
+
+- `--script`: (optional) filter to a script.
+- `--tail`: (optional) return only the last N lines.
+
+### examples
+
+```
+pterm logs comfyanonymous-comfyui
+```
+
+```
+pterm logs comfyanonymous-comfyui --script=start --tail=200
 ```
 
 ## filepicker
@@ -268,4 +343,3 @@ pterm push 'this is a notification' --sound
 ```
 pterm push 'this is an image notification' --image=icon.png
 ```
-
