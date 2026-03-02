@@ -2,6 +2,11 @@ const { WebSocket } = require('unws')
 class RPC {
   constructor(url) {
     this.url = url
+    this.wsOptions = {
+      headers: {
+        "x-pinokio-client": "pterm"
+      }
+    }
   }
   async status(rpc) {
     let res = await new Promise((resolve, reject) => {
@@ -38,7 +43,7 @@ class RPC {
       if (this.ws) {
         this.ws.send(JSON.stringify(rpc))
       } else {
-        this.ws = new WebSocket(this.url)
+        this.ws = new WebSocket(this.url, this.wsOptions)
         this.ws.addEventListener('open', () => {
           this.ws.send(JSON.stringify(rpc))
         });

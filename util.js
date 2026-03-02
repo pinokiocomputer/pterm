@@ -71,6 +71,65 @@ class Util {
     const response = await axios.get(url)
     this.printJson(response.data)
   }
+  async stars(argv) {
+    const query = (argv._.slice(1).join(" ") || argv.q || "").trim().toLowerCase()
+    const [preferenceResponse, appResponse] = await Promise.all([
+      axios.get("http://localhost:42000/apps/preferences"),
+      axios.get("http://localhost:42000/info/apps")
+    ])
+    const preferenceItems = preferenceResponse && preferenceResponse.data && preferenceResponse.data.items
+      ? preferenceResponse.data.items
+      : {}
+    const apps = appResponse && appResponse.data && Array.isArray(appResponse.data.apps)
+      ? appResponse.data.apps
+      : []
+    const appsById = new Map()
+    for (const app of apps) {
+      if (!app || !app.name) continue
+      appsById.set(app.name, app)
+    }
+    const starredApps = Object.entries(preferenceItems)
+      .filter(([, preference]) => preference && preference.starred)
+      .map(([appId, preference]) => {
+        const app = appsById.get(appId) || {}
+        return {
+          app_id: appId,
+          title: app.title || appId,
+          description: app.description || "",
+          icon: app.icon || "/pinokio-black.png",
+          ...preference
+        }
+      })
+      .sort((a, b) => {
+        const aLast = typeof a.last_launch_at === "string" ? Date.parse(a.last_launch_at) || 0 : 0
+        const bLast = typeof b.last_launch_at === "string" ? Date.parse(b.last_launch_at) || 0 : 0
+        if (aLast !== bLast) {
+          return bLast - aLast
+        }
+        return String(a.title || a.app_id).localeCompare(String(b.title || b.app_id))
+      })
+      .filter((app) => {
+        if (!query) return true
+        const haystack = `${app.app_id || ""}\n${app.title || ""}\n${app.description || ""}`.toLowerCase()
+        return haystack.includes(query)
+      })
+    this.printJson({
+      q: query,
+      count: starredApps.length,
+      apps: starredApps
+    })
+  }
+  async setStar(argv, starred) {
+    if (argv._.length <= 1) {
+      console.error("required argument: <app_id>")
+      return
+    }
+    const appId = argv._[1]
+    const response = await axios.put(`http://localhost:42000/apps/preferences/${encodeURIComponent(appId)}`, {
+      starred: Boolean(starred)
+    })
+    this.printJson(response.data)
+  }
   async filepicker(argv) {
     const rpc = new RPC("ws://localhost:42000")
     if (argv.path) {

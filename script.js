@@ -52,7 +52,14 @@ class Script {
       stop()
     });
     let default_uri = await new Promise((resolve, reject) => {
-      rpc.run({ uri, mode: "open" }, (packet) => {
+      rpc.run({
+        uri,
+        mode: "open",
+        source: "pterm",
+        client: {
+          source: "pterm"
+        }
+      }, (packet) => {
         if (packet.data && packet.data.uri) {
           // start
           //rpc.stop({ uri })
@@ -134,9 +141,11 @@ class Script {
     });
     await rpc.run({
       uri,
+      source: "pterm",
       client: {
         cols,
         rows,
+        source: "pterm"
       }
     }, (packet) => {
       if (packet.type === "stop") {

@@ -56,6 +56,12 @@ const isHttpUri = (value) => typeof value === "string" && /^https?:\/\//i.test(v
       await util.download(argv)
     } else if (cmd === "search") {
       await util.search(argv)
+    } else if (cmd === "stars") {
+      await util.stars(argv)
+    } else if (cmd === "star") {
+      await util.setStar(argv, true)
+    } else if (cmd === "unstar") {
+      await util.setStar(argv, false)
     } else if (cmd === "status") {
       await util.status(argv)
     } else if (cmd === "logs") {

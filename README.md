@@ -186,6 +186,59 @@ pterm status comfyanonymous-comfyui
 pterm status comfyanonymous-comfyui --probe --timeout=5000
 ```
 
+## stars
+
+List starred apps.
+
+### syntax
+
+```
+pterm stars [query words...]
+pterm stars --q="<query>"
+```
+
+### examples
+
+```
+pterm stars
+```
+
+```
+pterm stars tts
+```
+
+## star
+
+Star an app so it is preferred on Pinokio home/search ranking.
+
+### syntax
+
+```
+pterm star <app_id>
+```
+
+### example
+
+```
+pterm star comfyanonymous-comfyui
+```
+
+## unstar
+
+Remove star from an app.
+
+### syntax
+
+```
+pterm unstar <app_id>
+```
+
+### example
+
+```
+pterm unstar comfyanonymous-comfyui
+```
+
 ## logs
 
 Get app logs by app id.
