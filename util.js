@@ -130,6 +130,33 @@ class Util {
     })
     this.printJson(response.data)
   }
+  async which(argv) {
+    if (argv._.length <= 1) {
+      console.error("required argument: <command>")
+      return
+    }
+    const command = String(argv._[1]).trim()
+    if (!command) {
+      console.error("required argument: <command>")
+      return
+    }
+    try {
+      const response = await axios.get(`http://localhost:42000/pinokio/path/${encodeURIComponent(command)}`)
+      if (argv.json) {
+        this.printJson(response.data)
+      } else if (response.data && response.data.path) {
+        process.stdout.write(String(response.data.path))
+        process.stdout.write("\n")
+      }
+    } catch (error) {
+      if (error && error.response && error.response.status === 404) {
+        console.error(`command not found: ${command}`)
+        process.exitCode = 1
+        return
+      }
+      throw error
+    }
+  }
   async filepicker(argv) {
     const rpc = new RPC("ws://localhost:42000")
     if (argv.path) {

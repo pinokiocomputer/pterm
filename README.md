@@ -163,6 +163,28 @@ pterm search --q="text generation"
 pterm search "tts speech synthesis" --mode=balanced --min-match=2 --limit=8
 ```
 
+## which
+
+Resolve the executable path for a command name through Pinokio's environment.
+
+### syntax
+
+```
+pterm which <command> [--json]
+```
+
+- `--json`: (optional) print the raw JSON response instead of only the path.
+
+### examples
+
+```
+pterm which node
+```
+
+```
+pterm which git --json
+```
+
 ## status
 
 Get app status by app id.
