@@ -30,7 +30,7 @@ class Script {
 
     return cleanup; // call this to stop listening
   }
-  async default_script (uri) {
+  async default_script (uri, defaultSelectors) {
     const rpc = new RPC("ws://localhost:42000")
     const stop = () => {
       rpc.run({
@@ -55,6 +55,7 @@ class Script {
       rpc.run({
         uri,
         mode: "open",
+        default: Array.isArray(defaultSelectors) ? defaultSelectors : undefined,
         source: "pterm",
         client: {
           source: "pterm"

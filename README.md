@@ -103,15 +103,16 @@ pterm stop start.js
 
 ## run
 
-Run a launcher. Equivalent to the user visiting a launcher page. Will run whichever script is the current default script.
+Run a launcher. Equivalent to the user visiting a launcher page. By default it will run whichever script is the current launcher default. If the launcher exposes no explicit default, you can provide repeated `--default` selectors and Pinokio will match the first selector that exists in the launcher's current menu state.
 
 ### syntax
 
 ```
-pterm run <launcher_path_or_uri> [--open]
+pterm run <launcher_path_or_uri> [--default <selector>]... [--open]
 ```
 
 - `--open`: (optional) open URL results in the browser. Default behavior is to print the URL to stdout without opening a browser.
+- `--default`: (optional, repeatable) ordered launcher action selector. Each selector is matched against the current launcher menu. Selectors use launcher `href` syntax such as `run.js`, `install.js`, or `run.js?mode=Default`.
 
 ### examples
 
@@ -131,6 +132,21 @@ Run from a launcher URI and auto-open the resulting URL in browser
 
 ```
 pterm run https://github.com/example/my-launcher --open
+```
+
+Run a launcher with ordered fallback selectors when the launcher has no explicit default item
+
+```
+pterm run ~/pinokio/api/facefusion-pinokio.git \
+  --default 'run.js?mode=Default' \
+  --default run.js \
+  --default install.js
+```
+
+Launch a script directly with query parameters. Query parameters are passed through as script input automatically.
+
+```
+pterm start 'run.js?mode=Default'
 ```
 
 ## search

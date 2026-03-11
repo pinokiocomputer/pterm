@@ -2,7 +2,12 @@
 const path = require('path')
 const yargs = require('yargs/yargs')
 const { hideBin } = require('yargs/helpers')
-const argv = yargs(hideBin(process.argv)).parse();
+const argv = yargs(hideBin(process.argv))
+  .option('default', {
+    type: 'string',
+    array: true
+  })
+  .parse();
 const Script = require('./script')
 const Util = require('./util')
 const script = new Script();
@@ -89,7 +94,7 @@ const isHttpUri = (value) => typeof value === "string" && /^https?:\/\//i.test(v
           })
         }
         while(true) {
-          let default_uri = await script.default_script(uri)
+          let default_uri = await script.default_script(uri, argv.default)
           if (default_uri) {
             if (path.isAbsolute(default_uri)) {
               await new Promise((resolve, reject) => {
