@@ -30,6 +30,43 @@ class Script {
 
     return cleanup; // call this to stop listening
   }
+  normalizeTarget(target) {
+    const appendInputValue = (input, key, value) => {
+      if (Object.prototype.hasOwnProperty.call(input, key)) {
+        if (Array.isArray(input[key])) {
+          input[key].push(value)
+        } else {
+          input[key] = [input[key], value]
+        }
+      } else {
+        input[key] = value
+      }
+    }
+    if (target && typeof target === "object" && typeof target.uri === "string") {
+      return {
+        uri: target.uri,
+        input: target.input && typeof target.input === "object" ? target.input : undefined
+      }
+    }
+    let uri = target
+    let input
+    if (!/^https?:\/\//i.test(uri)) {
+      let queryIndex = uri.indexOf("?")
+      if (queryIndex >= 0) {
+        input = {}
+        let params = new URLSearchParams(uri.slice(queryIndex + 1))
+        for (let [key, value] of params.entries()) {
+          appendInputValue(input, key, value)
+        }
+        uri = uri.slice(0, queryIndex)
+      }
+      uri = path.resolve(process.cwd(), uri)
+    }
+    return {
+      uri,
+      input
+    }
+  }
   async default_script (uri, defaultSelectors) {
     const rpc = new RPC("ws://localhost:42000")
     const stop = () => {
@@ -51,7 +88,7 @@ class Script {
     process.on("exit", (code) => {
       stop()
     });
-    let default_uri = await new Promise((resolve, reject) => {
+    let default_target = await new Promise((resolve, reject) => {
       rpc.run({
         uri,
         mode: "open",
@@ -65,16 +102,19 @@ class Script {
           // start
           //rpc.stop({ uri })
           stop()
-          resolve(packet.data.uri)
+          resolve({
+            uri: packet.data.uri,
+            input: packet.data.input
+          })
         }
       })
     })
-    return default_uri
+    return default_target
   }
   async stop(argv) {
     if (argv._.length > 1) {
       let _uri = argv._[1]
-      const uri = path.resolve(process.cwd(), _uri)
+      const { uri } = this.normalizeTarget(_uri)
       const rpc = new RPC("ws://localhost:42000")
       rpc.run({
         method: "kernel.api.stop",
@@ -91,7 +131,8 @@ class Script {
     const rows = process.stdout.rows;
     const rpc = new RPC("ws://localhost:42000")
 
-    const uri = path.resolve(process.cwd(), _uri)
+    const target = this.normalizeTarget(_uri)
+    const uri = target.uri
 
     const stop = () => {
       this.killed = true
@@ -140,7 +181,7 @@ class Script {
       }, (packet) => {
       })
     });
-    await rpc.run({
+    let payload = {
       uri,
       source: "pterm",
       client: {
@@ -148,7 +189,11 @@ class Script {
         rows,
         source: "pterm"
       }
-    }, (packet) => {
+    }
+    if (target.input && Object.keys(target.input).length > 0) {
+      payload.input = target.input
+    }
+    await rpc.run(payload, (packet) => {
       if (packet.type === "stop") {
         rpc.stop({ uri })
         if (kill) {

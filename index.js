@@ -94,11 +94,11 @@ const isHttpUri = (value) => typeof value === "string" && /^https?:\/\//i.test(v
           })
         }
         while(true) {
-          let default_uri = await script.default_script(uri, argv.default)
-          if (default_uri) {
-            if (path.isAbsolute(default_uri)) {
+          let default_target = await script.default_script(uri, argv.default)
+          if (default_target) {
+            if (path.isAbsolute(default_target.uri)) {
               await new Promise((resolve, reject) => {
-                script.start(default_uri, false, (packet) => {
+                script.start(default_target, false, (packet) => {
                   if (packet.type === "result") {
                     resolve()
                   }
@@ -110,10 +110,10 @@ const isHttpUri = (value) => typeof value === "string" && /^https?:\/\//i.test(v
             } else {
               // default behavior is no browser side effect.
               if (argv.open) {
-                let response = await util.open_url(default_uri)
+                let response = await util.open_url(default_target.uri)
                 console.log({ response })
               } else {
-                console.log(default_uri)
+                console.log(default_target.uri)
               }
               break
             }
