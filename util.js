@@ -157,6 +157,15 @@ class Util {
       throw error
     }
   }
+  async home(argv) {
+    const response = await axios.get("http://localhost:42000/pinokio/home")
+    if (argv.json) {
+      this.printJson(response.data)
+    } else if (response.data && response.data.path) {
+      process.stdout.write(String(response.data.path))
+      process.stdout.write("\n")
+    }
+  }
   async filepicker(argv) {
     const rpc = new RPC("ws://localhost:42000")
     if (argv.path) {
