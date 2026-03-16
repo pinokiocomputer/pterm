@@ -7,6 +7,13 @@ class Util {
     process.stdout.write(JSON.stringify(payload, null, 2))
     process.stdout.write("\n")
   }
+  formatRpcError(payload) {
+    if (typeof payload !== "string") {
+      return JSON.stringify(payload)
+    }
+    const [firstLine] = payload.split(/\r?\n/)
+    return firstLine || payload
+  }
   registryBase() {
     const value = String(process.env.PINOKIO_REGISTRY_API_BASE || "https://api.pinokio.co").trim()
     return value.replace(/\/$/, "")
@@ -249,6 +256,51 @@ class Util {
     let response = await axios.post("http://localhost:42000/go", { url })
     return response
   }
+  async appDownload(argv) {
+    if (argv._.length <= 1) {
+      console.error("required argument: <uri>")
+      process.exitCode = 1
+      return
+    }
+    const uri = String(argv._[1]).trim()
+    const name = argv._.length > 2 ? String(argv._[2]).trim() : ""
+    const branch = typeof argv.b === "string"
+      ? argv.b.trim()
+      : (typeof argv.branch === "string" ? argv.branch.trim() : "")
+    const rpc = new RPC("ws://localhost:42000")
+    let exitCode = 0
+    await rpc.run({
+      method: "app.download",
+      params: {
+        uri,
+        ...(name ? { name } : {}),
+        ...(branch ? { branch } : {})
+      }
+    }, (packet) => {
+      if (packet.type === "result") {
+        if (!packet.data || packet.data.ok === false) {
+          exitCode = 1
+          const message = packet.data && packet.data.error ? packet.data.error : "download failed"
+          if (packet.data && packet.data.path) {
+            console.error(`${message}: ${packet.data.path}`)
+          } else {
+            console.error(message)
+          }
+        }
+        rpc.close()
+      } else if (packet.type === "stream") {
+        process.stdout.write(packet.data.raw)
+      } else if (packet.type === "error") {
+        exitCode = 1
+        console.error(this.formatRpcError(packet.data))
+        rpc.close()
+      }
+    })
+    if (exitCode !== 0) {
+      process.exitCode = exitCode
+    }
+  }
+  // Keep the legacy URL download flow for `pterm run <url>`.
   async download(argv) {
     if (argv._.length > 1) {
       let uri = argv._[1]

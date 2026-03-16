@@ -149,6 +149,42 @@ Launch a script directly with query parameters. Query parameters are passed thro
 pterm start 'run.js?mode=Default'
 ```
 
+## download
+
+Clone an app repo into Pinokio's app directory without launching it.
+
+### syntax
+
+```
+pterm download <uri> [name] [--branch=<branch>]
+pterm download <uri> [name] -b <branch>
+```
+
+- `uri`: required git repository URI
+- `name`: (optional) target folder name under `PINOKIO_HOME/api`
+- `--branch` / `-b`: (optional) clone a specific branch
+
+Behavior:
+
+- if `name` is omitted, Pinokio uses the same default destination folder naming as `git clone <uri>`
+- if `name` is provided, Pinokio clones into `PINOKIO_HOME/api/<name>`
+- if the target folder already exists, the command fails with `already exists`
+- the command does not dedupe by repo URL
+
+### examples
+
+```
+pterm download https://github.com/example/my-launcher.git
+```
+
+```
+pterm download https://github.com/example/my-launcher.git my-launcher-dev
+```
+
+```
+pterm download https://github.com/example/my-launcher.git my-launcher-dev --branch=feature-x
+```
+
 ## search
 
 Search installed or available apps.
