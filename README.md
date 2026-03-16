@@ -179,6 +179,41 @@ pterm search --q="text generation"
 pterm search "tts speech synthesis" --mode=balanced --min-match=2 --limit=8
 ```
 
+## registry search
+
+Search the remote Pinokio registry.
+
+### syntax
+
+```
+pterm registry search [query words...]
+pterm registry search --q="<query>" [--limit=<n>] [--sort=relevance|popular|trending|latest|created|checkins|name] [--platform=mac|windows|linux] [--gpu=nvidia|amd|apple]
+```
+
+- `--limit`: (optional) max number of app results to return.
+- `--sort`: (optional) result ordering. Default is `relevance`.
+- `--platform`: (optional) filter by observed platform support from public check-ins.
+- `--gpu`: (optional) filter by observed GPU support from public check-ins.
+
+By default, this command queries `https://api.pinokio.co/v1/search`. Override with `PINOKIO_REGISTRY_API_BASE`.
+
+### examples
+
+```
+pterm registry search tts
+```
+
+```
+pterm registry search "speech synthesis" --limit=5
+```
+
+PINOKIO_REGISTRY_API_BASE=https://api.pinokio.co pterm registry search comfyui --platform=mac --gpu=apple
+```
+
+```
+PINOKIO_REGISTRY_API_BASE=https://api.pinokio.co pterm registry search comfyui --sort=popular
+```
+
 ## which
 
 Resolve the executable path for a command name through Pinokio's environment.

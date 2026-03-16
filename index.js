@@ -59,6 +59,13 @@ const isHttpUri = (value) => typeof value === "string" && /^https?:\/\//i.test(v
       await util.filepicker(argv)
     } else if (cmd === "download") {
       await util.download(argv)
+    } else if (cmd === "registry") {
+      const subcmd = argv._.length > 1 ? String(argv._[1]).toLowerCase() : ""
+      if (subcmd === "search") {
+        await util.registrySearch(argv)
+      } else {
+        console.error("supported subcommands: search")
+      }
     } else if (cmd === "search") {
       await util.search(argv)
     } else if (cmd === "stars") {

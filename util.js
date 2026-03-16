@@ -7,6 +7,10 @@ class Util {
     process.stdout.write(JSON.stringify(payload, null, 2))
     process.stdout.write("\n")
   }
+  registryBase() {
+    const value = String(process.env.PINOKIO_REGISTRY_API_BASE || "https://api.pinokio.co").trim()
+    return value.replace(/\/$/, "")
+  }
   async search(argv) {
     const query = (argv._.slice(1).join(" ") || argv.q || "").trim()
     const params = { q: query }
@@ -31,6 +35,35 @@ class Util {
     const response = await axios.get("http://localhost:42000/apps/search", {
       params
     })
+    this.printJson(response.data)
+  }
+  async registrySearch(argv) {
+    const query = (argv._.slice(2).join(" ") || argv.q || "").trim()
+    if (!query) {
+      console.error("required argument: <query>")
+      return
+    }
+    const params = { q: query }
+    const limitRaw = argv.limit
+    const sortRaw = typeof argv.sort === "string" ? argv.sort.trim().toLowerCase() : ""
+    const platformRaw = typeof argv.platform === "string" ? argv.platform.trim().toLowerCase() : ""
+    const gpuRaw = typeof argv.gpu === "string" ? argv.gpu.trim().toLowerCase() : ""
+    if (limitRaw !== undefined && limitRaw !== null && limitRaw !== "") {
+      const limit = Number.parseInt(String(limitRaw), 10)
+      if (Number.isFinite(limit) && limit > 0) {
+        params.limit = String(limit)
+      }
+    }
+    if (["relevance", "popular", "trending", "latest", "created", "checkins", "name"].includes(sortRaw)) {
+      params.sort = sortRaw
+    }
+    if (platformRaw === "mac" || platformRaw === "windows" || platformRaw === "linux") {
+      params.platform = platformRaw
+    }
+    if (gpuRaw === "nvidia" || gpuRaw === "amd" || gpuRaw === "apple") {
+      params.gpu = gpuRaw
+    }
+    const response = await axios.get(`${this.registryBase()}/v1/search`, { params })
     this.printJson(response.data)
   }
   async status(argv) {
