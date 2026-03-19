@@ -2,6 +2,7 @@ const os = require('os')
 const axios = require('axios')
 const path = require('path')
 const RPC = require('./rpc')
+const { resolveHttpBaseUrl, resolveWsBaseUrl } = require('./endpoint')
 class Util {
   printJson(payload) {
     process.stdout.write(JSON.stringify(payload, null, 2))
@@ -39,7 +40,8 @@ class Util {
         params.limit = String(limit)
       }
     }
-    const response = await axios.get("http://localhost:42000/apps/search", {
+    const baseUrl = await resolveHttpBaseUrl()
+    const response = await axios.get(`${baseUrl}/apps/search`, {
       params
     })
     this.printJson(response.data)
@@ -86,7 +88,8 @@ class Util {
     if (Number.isFinite(timeout) && timeout > 0) {
       params.set("timeout", String(timeout))
     }
-    const url = `http://localhost:42000/apps/status/${encodeURIComponent(appId)}?${params.toString()}`
+    const baseUrl = await resolveHttpBaseUrl()
+    const url = `${baseUrl}/apps/status/${encodeURIComponent(appId)}?${params.toString()}`
     const response = await axios.get(url)
     this.printJson(response.data)
   }
@@ -107,15 +110,17 @@ class Util {
       }
     }
     const suffix = params.toString() ? `?${params.toString()}` : ""
-    const url = `http://localhost:42000/apps/logs/${encodeURIComponent(appId)}${suffix}`
+    const baseUrl = await resolveHttpBaseUrl()
+    const url = `${baseUrl}/apps/logs/${encodeURIComponent(appId)}${suffix}`
     const response = await axios.get(url)
     this.printJson(response.data)
   }
   async stars(argv) {
     const query = (argv._.slice(1).join(" ") || argv.q || "").trim().toLowerCase()
+    const baseUrl = await resolveHttpBaseUrl()
     const [preferenceResponse, appResponse] = await Promise.all([
-      axios.get("http://localhost:42000/apps/preferences"),
-      axios.get("http://localhost:42000/info/apps")
+      axios.get(`${baseUrl}/apps/preferences`),
+      axios.get(`${baseUrl}/info/apps`)
     ])
     const preferenceItems = preferenceResponse && preferenceResponse.data && preferenceResponse.data.items
       ? preferenceResponse.data.items
@@ -165,7 +170,8 @@ class Util {
       return
     }
     const appId = argv._[1]
-    const response = await axios.put(`http://localhost:42000/apps/preferences/${encodeURIComponent(appId)}`, {
+    const baseUrl = await resolveHttpBaseUrl()
+    const response = await axios.put(`${baseUrl}/apps/preferences/${encodeURIComponent(appId)}`, {
       starred: Boolean(starred)
     })
     this.printJson(response.data)
@@ -181,7 +187,8 @@ class Util {
       return
     }
     try {
-      const response = await axios.get(`http://localhost:42000/pinokio/path/${encodeURIComponent(command)}`)
+      const baseUrl = await resolveHttpBaseUrl()
+      const response = await axios.get(`${baseUrl}/pinokio/path/${encodeURIComponent(command)}`)
       if (argv.json) {
         this.printJson(response.data)
       } else if (response.data && response.data.path) {
@@ -198,7 +205,8 @@ class Util {
     }
   }
   async home(argv) {
-    const response = await axios.get("http://localhost:42000/pinokio/home")
+    const baseUrl = await resolveHttpBaseUrl()
+    const response = await axios.get(`${baseUrl}/pinokio/home`)
     if (argv.json) {
       this.printJson(response.data)
     } else if (response.data && response.data.path) {
@@ -207,7 +215,7 @@ class Util {
     }
   }
   async filepicker(argv) {
-    const rpc = new RPC("ws://localhost:42000")
+    const rpc = new RPC(await resolveWsBaseUrl())
     if (argv.path) {
       argv.path = path.resolve(process.cwd(), argv.path)
     }
@@ -236,7 +244,8 @@ class Util {
       if (argv._.length > 2) {
         payload.text = argv._[2]
       }
-      let response = await axios.post("http://localhost:42000/clipboard", payload)
+      const baseUrl = await resolveHttpBaseUrl()
+      let response = await axios.post(`${baseUrl}/clipboard`, payload)
       if (response.data && response.data.text) {
         console.log(response.data.text)
       }
@@ -249,11 +258,13 @@ class Util {
     if (argv.image && !path.isAbsolute(argv.image)) {
       argv.image = path.resolve(process.cwd(), argv.image)
     }
-    let response = await axios.post("http://localhost:42000/push", argv)
+    const baseUrl = await resolveHttpBaseUrl()
+    let response = await axios.post(`${baseUrl}/push`, argv)
     return response
   }
   async open_url(url) {
-    let response = await axios.post("http://localhost:42000/go", { url })
+    const baseUrl = await resolveHttpBaseUrl()
+    let response = await axios.post(`${baseUrl}/go`, { url })
     return response
   }
   async appDownload(argv) {
@@ -267,7 +278,7 @@ class Util {
     const branch = typeof argv.b === "string"
       ? argv.b.trim()
       : (typeof argv.branch === "string" ? argv.branch.trim() : "")
-    const rpc = new RPC("ws://localhost:42000")
+    const rpc = new RPC(await resolveWsBaseUrl())
     let exitCode = 0
     await rpc.run({
       method: "app.download",
@@ -304,7 +315,7 @@ class Util {
   async download(argv) {
     if (argv._.length > 1) {
       let uri = argv._[1]
-      const rpc = new RPC("ws://localhost:42000")
+      const rpc = new RPC(await resolveWsBaseUrl())
       await rpc.run({
         method: "kernel.bin.install2",
         params: {}

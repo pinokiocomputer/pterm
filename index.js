@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 const path = require('path')
+const axios = require('axios')
 const yargs = require('yargs/yargs')
 const { hideBin } = require('yargs/helpers')
+const { resolveHttpBaseUrl } = require('./endpoint')
 const argv = yargs(hideBin(process.argv))
   .option('default', {
     type: 'string',
@@ -13,6 +15,11 @@ const Util = require('./util')
 const script = new Script();
 const util = new Util();
 const isHttpUri = (value) => typeof value === "string" && /^https?:\/\//i.test(value);
+const fetchPinokioVersion = async () => {
+  const baseUrl = await resolveHttpBaseUrl()
+  const response = await axios.get(`${baseUrl}/pinokio/version`)
+  return response.data
+}
 (async () => {
   if (argv._.length > 0) {
     let cmd = argv._[0].toLowerCase()
@@ -27,17 +34,13 @@ const isHttpUri = (value) => typeof value === "string" && /^https?:\/\//i.test(v
           console.log("pterm@" + require('./package.json').version)
         } else if (app === "pinokiod") {
           try {
-            let r = await fetch("http://localhost:42000/pinokio/version").then((res) => {
-              return res.json()
-            })
+            let r = await fetchPinokioVersion()
             console.log(`pinokiod@${r.pinokiod}`)
           } catch (e) {
           }
         } else if (app === "pinokio") {
           try {
-            let r = await fetch("http://localhost:42000/pinokio/version").then((res) => {
-              return res.json()
-            })
+            let r = await fetchPinokioVersion()
             if (r.pinokio) {
               console.log(`pinokiod@${r.pinokio}`)
             }
@@ -45,9 +48,7 @@ const isHttpUri = (value) => typeof value === "string" && /^https?:\/\//i.test(v
           }
         } else if (app === "script") {
           try {
-            let r = await fetch("http://localhost:42000/pinokio/version").then((res) => {
-              return res.json()
-            })
+            let r = await fetchPinokioVersion()
             if (r.script) {
               console.log(`${r.script}`)
             }

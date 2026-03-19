@@ -1,5 +1,6 @@
 const path = require('path')
 const RPC = require('./rpc')
+const { resolveWsBaseUrl } = require('./endpoint')
 class Script {
   listen(onKey) {
     if (process.stdin.isTTY) {
@@ -68,7 +69,7 @@ class Script {
     }
   }
   async default_script (uri, defaultSelectors) {
-    const rpc = new RPC("ws://localhost:42000")
+    const rpc = new RPC(await resolveWsBaseUrl())
     const stop = () => {
       rpc.run({
         method: "kernel.api.stop",
@@ -115,7 +116,7 @@ class Script {
     if (argv._.length > 1) {
       let _uri = argv._[1]
       const { uri } = this.normalizeTarget(_uri)
-      const rpc = new RPC("ws://localhost:42000")
+      const rpc = new RPC(await resolveWsBaseUrl())
       rpc.run({
         method: "kernel.api.stop",
         params: { uri }
@@ -129,7 +130,7 @@ class Script {
   async start(_uri, kill, ondata) {
     const cols = process.stdout.columns;
     const rows = process.stdout.rows;
-    const rpc = new RPC("ws://localhost:42000")
+    const rpc = new RPC(await resolveWsBaseUrl())
 
     const target = this.normalizeTarget(_uri)
     const uri = target.uri
