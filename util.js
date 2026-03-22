@@ -1,9 +1,18 @@
+const fs = require('fs')
 const os = require('os')
 const axios = require('axios')
 const path = require('path')
 const RPC = require('./rpc')
 const { resolveHttpBaseUrl, resolveWsBaseUrl } = require('./endpoint')
+const { isPinokioRef, parsePinokioRef, buildPinokioRef } = require('./target')
 class Util {
+  resolveLocalPath(value) {
+    const raw = String(value)
+    if (raw.startsWith('~/')) {
+      return path.resolve(os.homedir(), raw.slice(2))
+    }
+    return path.resolve(process.cwd(), raw)
+  }
   printJson(payload) {
     process.stdout.write(JSON.stringify(payload, null, 2))
     process.stdout.write("\n")
@@ -18,6 +27,27 @@ class Util {
   registryBase() {
     const value = String(process.env.PINOKIO_REGISTRY_API_BASE || "https://api.pinokio.co").trim()
     return value.replace(/\/$/, "")
+  }
+  async resolveResourceRequestTarget(value) {
+    const raw = String(value || '').trim()
+    if (isPinokioRef(raw)) {
+      const parsedRef = parsePinokioRef(raw)
+      if (!parsedRef.valid) {
+        throw new Error(parsedRef.error || 'Invalid ref')
+      }
+      return {
+        baseUrl: await resolveHttpBaseUrl(),
+        ref: buildPinokioRef(parsedRef),
+        legacyId: null,
+        parsedRef
+      }
+    }
+    return {
+      baseUrl: await resolveHttpBaseUrl(),
+      ref: null,
+      legacyId: raw,
+      parsedRef: null
+    }
   }
   async search(argv) {
     const query = (argv._.slice(1).join(" ") || argv.q || "").trim()
@@ -80,16 +110,20 @@ class Util {
       console.error("required argument: <app_id>")
       return
     }
-    const appId = argv._[1]
+    const target = await this.resolveResourceRequestTarget(argv._[1])
     const probe = argv.probe ? "1" : "0"
     const timeout = argv.timeout ? Number.parseInt(String(argv.timeout), 10) : null
     const params = new URLSearchParams()
+    if (target.ref) {
+      params.set("ref", target.ref)
+    }
     params.set("probe", probe)
     if (Number.isFinite(timeout) && timeout > 0) {
       params.set("timeout", String(timeout))
     }
-    const baseUrl = await resolveHttpBaseUrl()
-    const url = `${baseUrl}/apps/status/${encodeURIComponent(appId)}?${params.toString()}`
+    const url = target.ref
+      ? `${target.baseUrl}/pinokio/resource/status?${params.toString()}`
+      : `${target.baseUrl}/apps/status/${encodeURIComponent(target.legacyId)}?${params.toString()}`
     const response = await axios.get(url)
     this.printJson(response.data)
   }
@@ -98,8 +132,11 @@ class Util {
       console.error("required argument: <app_id>")
       return
     }
-    const appId = argv._[1]
+    const target = await this.resolveResourceRequestTarget(argv._[1])
     const params = new URLSearchParams()
+    if (target.ref) {
+      params.set("ref", target.ref)
+    }
     if (argv.script) {
       params.set("script", String(argv.script))
     }
@@ -110,10 +147,64 @@ class Util {
       }
     }
     const suffix = params.toString() ? `?${params.toString()}` : ""
-    const baseUrl = await resolveHttpBaseUrl()
-    const url = `${baseUrl}/apps/logs/${encodeURIComponent(appId)}${suffix}`
+    const url = target.ref
+      ? `${target.baseUrl}/pinokio/resource/logs${suffix}`
+      : `${target.baseUrl}/apps/logs/${encodeURIComponent(target.legacyId)}${suffix}`
     const response = await axios.get(url)
     this.printJson(response.data)
+  }
+  async upload(argv) {
+    if (argv._.length <= 2) {
+      console.error("required arguments: <app_id> <file...>")
+      process.exitCode = 1
+      return
+    }
+    const target = await this.resolveResourceRequestTarget(argv._[1])
+    if (!target.ref && !target.legacyId) {
+      console.error("required argument: <app_id>")
+      process.exitCode = 1
+      return
+    }
+    const fileArgs = argv._.slice(2)
+    const form = new FormData()
+    for (const rawPath of fileArgs) {
+      const resolvedPath = this.resolveLocalPath(rawPath)
+      let stat
+      try {
+        stat = await fs.promises.stat(resolvedPath)
+      } catch (_) {
+        console.error(`file not found: ${resolvedPath}`)
+        process.exitCode = 1
+        return
+      }
+      if (!stat.isFile()) {
+        console.error(`not a file: ${resolvedPath}`)
+        process.exitCode = 1
+        return
+      }
+      const buffer = await fs.promises.readFile(resolvedPath)
+      form.append('files', new Blob([buffer]), path.basename(resolvedPath))
+    }
+    const uploadUrl = target.ref
+      ? `${target.baseUrl}/pinokio/resource/upload?ref=${encodeURIComponent(target.ref)}`
+      : `${target.baseUrl}/apps/${encodeURIComponent(target.legacyId)}/upload`
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      body: form
+    })
+    const raw = await response.text()
+    let payload
+    try {
+      payload = raw ? JSON.parse(raw) : {}
+    } catch (_) {
+      payload = { error: raw || `Upload failed (${response.status})` }
+    }
+    if (!response.ok) {
+      this.printJson(payload)
+      process.exitCode = 1
+      return
+    }
+    this.printJson(payload)
   }
   async stars(argv) {
     const query = (argv._.slice(1).join(" ") || argv.q || "").trim().toLowerCase()
@@ -217,7 +308,7 @@ class Util {
   async filepicker(argv) {
     const rpc = new RPC(await resolveWsBaseUrl())
     if (argv.path) {
-      argv.path = path.resolve(process.cwd(), argv.path)
+      argv.path = this.resolveLocalPath(argv.path)
     }
     await rpc.run({
       method: "kernel.bin.filepicker",
@@ -256,7 +347,7 @@ class Util {
       argv.message = argv._[1]
     }
     if (argv.image && !path.isAbsolute(argv.image)) {
-      argv.image = path.resolve(process.cwd(), argv.image)
+      argv.image = this.resolveLocalPath(argv.image)
     }
     const baseUrl = await resolveHttpBaseUrl()
     let response = await axios.post(`${baseUrl}/push`, argv)

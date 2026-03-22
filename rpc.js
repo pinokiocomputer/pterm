@@ -21,7 +21,16 @@ class RPC {
     return res
   }
   close() {
-    this.ws.close()
+    if (!this.ws) {
+      return
+    }
+    const ws = this.ws
+    delete this.ws
+    if (typeof ws.terminate === 'function') {
+      ws.terminate()
+      return
+    }
+    ws.close()
   }
   stop(rpc) {
     this.run({
@@ -43,23 +52,32 @@ class RPC {
       if (this.ws) {
         this.ws.send(JSON.stringify(rpc))
       } else {
-        this.ws = new WebSocket(this.url, this.wsOptions)
-        this.ws.addEventListener('open', () => {
-          this.ws.send(JSON.stringify(rpc))
+        const ws = new WebSocket(this.url, this.wsOptions)
+        this.ws = ws
+        ws.addEventListener('open', () => {
+          ws.send(JSON.stringify(rpc))
         });
-        this.ws.addEventListener('message', (message) => {
+        ws.addEventListener('message', (message) => {
           /******************************************************************************
 
 
           ******************************************************************************/
           if (ondata) {
-            const packet = JSON.parse(message.data);
+            const rawMessage = message && typeof message === 'object' && typeof message.data !== 'undefined'
+              ? message.data
+              : message
+            const packetSource = Buffer.isBuffer(rawMessage)
+              ? rawMessage.toString('utf8')
+              : String(rawMessage)
+            const packet = JSON.parse(packetSource);
             ondata(packet)
           }
         });
-        this.ws.addEventListener('close', () => {
+        ws.addEventListener('close', () => {
 //          console.log('Disconnected from WebSocket endpoint', { error: this.error, result: this.result });
-          delete this.ws
+          if (this.ws === ws) {
+            delete this.ws
+          }
           resolve()
         });
       }

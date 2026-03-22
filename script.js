@@ -1,6 +1,8 @@
+const os = require('os')
 const path = require('path')
 const RPC = require('./rpc')
 const { resolveWsBaseUrl } = require('./endpoint')
+const { resolveAppControlTarget, resolveStopTarget } = require('./target')
 class Script {
   listen(onKey) {
     if (process.stdin.isTTY) {
@@ -43,33 +45,46 @@ class Script {
         input[key] = value
       }
     }
-    if (target && typeof target === "object" && typeof target.uri === "string") {
-      return {
-        uri: target.uri,
-        input: target.input && typeof target.input === "object" ? target.input : undefined
-      }
-    }
-    let uri = target
-    let input
-    if (!/^https?:\/\//i.test(uri)) {
-      let queryIndex = uri.indexOf("?")
-      if (queryIndex >= 0) {
-        input = {}
-        let params = new URLSearchParams(uri.slice(queryIndex + 1))
-        for (let [key, value] of params.entries()) {
-          appendInputValue(input, key, value)
+    const parseTargetUri = (rawUri) => {
+      let uri = rawUri
+      let input
+      if (!/^https?:\/\//i.test(uri)) {
+        let queryIndex = uri.indexOf("?")
+        if (queryIndex >= 0) {
+          input = {}
+          let params = new URLSearchParams(uri.slice(queryIndex + 1))
+          for (let [key, value] of params.entries()) {
+            appendInputValue(input, key, value)
+          }
+          uri = uri.slice(0, queryIndex)
         }
-        uri = uri.slice(0, queryIndex)
+        if (uri.startsWith('~/')) {
+          uri = path.resolve(os.homedir(), uri.slice(2))
+        } else {
+          uri = path.resolve(process.cwd(), uri)
+        }
       }
-      uri = path.resolve(process.cwd(), uri)
+      return {
+        uri,
+        input
+      }
     }
-    return {
-      uri,
-      input
+    if (target && typeof target === "object" && typeof target.uri === "string") {
+      const normalized = parseTargetUri(target.uri)
+      return {
+        uri: normalized.uri,
+        input: normalized.input
+          ? {
+              ...(target.input && typeof target.input === "object" ? target.input : {}),
+              ...normalized.input
+            }
+          : (target.input && typeof target.input === "object" ? target.input : undefined)
+      }
     }
+    return parseTargetUri(target)
   }
-  async default_script (uri, defaultSelectors) {
-    const rpc = new RPC(await resolveWsBaseUrl())
+  async default_script (uri, defaultSelectors, targetControlPlane) {
+    const rpc = new RPC(await resolveWsBaseUrl(targetControlPlane))
     const stop = () => {
       rpc.run({
         method: "kernel.api.stop",
@@ -99,14 +114,17 @@ class Script {
           source: "pterm"
         }
       }, (packet) => {
-        if (packet.data && packet.data.uri) {
-          // start
-          //rpc.stop({ uri })
-          stop()
-          resolve({
-            uri: packet.data.uri,
-            input: packet.data.input
-          })
+        if (packet && packet.data) {
+          rpc.close()
+          if (packet.data.uri) {
+            stop()
+            resolve({
+              uri: packet.data.uri,
+              input: packet.data.input
+            })
+          } else {
+            resolve(null)
+          }
         }
       })
     })
@@ -115,22 +133,42 @@ class Script {
   async stop(argv) {
     if (argv._.length > 1) {
       let _uri = argv._[1]
-      const { uri } = this.normalizeTarget(_uri)
-      const rpc = new RPC(await resolveWsBaseUrl())
-      rpc.run({
-        method: "kernel.api.stop",
-        params: { uri }
-      }, (packet) => {
-        process.exit()
-      })
+      const target = await resolveStopTarget(_uri, argv.ref)
+      if (!target.uris.length) {
+        process.exit(0)
+        return
+      }
+      for (const uri of target.uris) {
+        const rpc = new RPC(await resolveWsBaseUrl(target.controlPlane))
+        await new Promise((resolve) => {
+          let settled = false
+          const finish = () => {
+            if (settled) {
+              return
+            }
+            settled = true
+            rpc.close()
+            resolve()
+          }
+          const timer = setTimeout(finish, 800)
+          rpc.run({
+            method: "kernel.api.stop",
+            params: { uri }
+          }, () => {
+            clearTimeout(timer)
+            finish()
+          })
+        })
+      }
+      process.exit(0)
     } else {
       console.error("required argument: <uri>")
     }
   }
-  async start(_uri, kill, ondata) {
+  async start(_uri, kill, ondata, targetControlPlane) {
     const cols = process.stdout.columns;
     const rows = process.stdout.rows;
-    const rpc = new RPC(await resolveWsBaseUrl())
+    const rpc = new RPC(await resolveWsBaseUrl(targetControlPlane))
 
     const target = this.normalizeTarget(_uri)
     const uri = target.uri
@@ -144,18 +182,22 @@ class Script {
         rpc.stop({ uri })
       })
     }
-    process.on("SIGINT", () => {
+    const onSigInt = () => {
       stop()
-    });
-    process.on("SIGTERM", () => {
+    }
+    const onSigTerm = () => {
       stop()
-    });
-    process.on("beforeExit", (code) => {
+    }
+    const onBeforeExit = () => {
       stop()
-    });
-    process.on("exit", (code) => {
+    }
+    const onExit = () => {
       stop()
-    });
+    }
+    process.on("SIGINT", onSigInt);
+    process.on("SIGTERM", onSigTerm);
+    process.on("beforeExit", onBeforeExit);
+    process.on("exit", onExit);
     this.key_stop = this.listen((key) => {
       if (key.length >= 256) {
         rpc.run({
@@ -170,7 +212,7 @@ class Script {
         })
       }
     });
-    process.stdout.on('resize', () => {
+    const resizeHandler = () => {
       const cols = process.stdout.columns;
       const rows = process.stdout.rows;
       rpc.run({
@@ -181,7 +223,8 @@ class Script {
         }
       }, (packet) => {
       })
-    });
+    }
+    process.stdout.on('resize', resizeHandler);
     let payload = {
       uri,
       source: "pterm",
@@ -194,19 +237,30 @@ class Script {
     if (target.input && Object.keys(target.input).length > 0) {
       payload.input = target.input
     }
+    let cleanedUp = false
+    const cleanupLocalSession = () => {
+      if (cleanedUp) {
+        return
+      }
+      cleanedUp = true
+      if (this.key_stop) {
+        this.key_stop()
+        this.key_stop = null
+      }
+      process.stdout.off('resize', resizeHandler)
+      process.off("SIGINT", onSigInt)
+      process.off("SIGTERM", onSigTerm)
+      process.off("beforeExit", onBeforeExit)
+      process.off("exit", onExit)
+      rpc.close()
+    }
     await rpc.run(payload, (packet) => {
       if (packet.type === "stop") {
-        rpc.stop({ uri })
-        if (kill) {
-          this.key_stop()
-          process.exit()
-        }
+        cleanupLocalSession()
+        process.exit(0)
       } else if (packet.type === "disconnect") {
-        rpc.close()
-        if (kill) {
-          this.key_stop()
-          process.exit()
-        }
+        cleanupLocalSession()
+        process.exit(0)
       } else if (packet.type === "stream") {
         if (packet.data.id) {
           this.shell_id = packet.data.id

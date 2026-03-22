@@ -10,6 +10,8 @@ npm install -g pterm
 
 # Usage
 
+This README documents the stable public CLI surface.
+
 ## version
 
 prints the current version
@@ -20,10 +22,10 @@ prints the current version
 pterm version <type>
 ```
 
-- `type`: may be `terminal`, `pinokiod`, or `pinokio`
+- `type`: may be `terminal`, `pinokiod`, `pinokio`, or `script`
   - `terminal`: returns the pterm version
   - `pinokiod`: returns the pinokiod version
-  - `pinokio`: returns the pinokio version
+  - `pinokio`: returns the Pinokio app wrapper version
   - `script`: returns the valid script version for the current client. used for including in `pinokio.js`
 
 ### example
@@ -32,15 +34,42 @@ pterm version <type>
 pterm version terminal
 ```
 
+## refs
+
+Pinokio resource references use this syntax:
+
+```
+pinokio://<host>:<port>/<scope>/<id>
+```
+
+Examples:
+
+```
+pinokio://127.0.0.1:42000/api/cropper.git
+pinokio://192.168.86.26:42000/api/facefusion-pinokio.git
+```
+
+Currently documented scope:
+
+- `api`: an installed Pinokio app under `PINOKIO_HOME/api`
+
+How refs are used:
+
+- the `host:port` in a ref identifies the target Pinokio control plane, not the app's `ready_url`
+- `pterm` does not connect directly to the app endpoint described by the ref
+- `pterm` talks to the local Pinokio control plane, and the local control plane resolves or forwards the ref to the target Pinokio node as needed
+
 ## start
 
-Start a pinokio script. Arguments can be passed into the script
+Start a pinokio script. `pterm` options go before `--`. Script args go after `--`.
 
 ### syntax
 
 ```
-pterm start <script_path> [<arg1>, <arg2>, ...]
+pterm start <script_path> [--ref <pinokio_ref>] [-- --<key>=<value> ...]
 ```
+
+With `--ref`, prefer relative script paths like `start.js`. `~/...` expansion is only local.
 
 ### examples
 
@@ -53,7 +82,7 @@ pterm start install.js
 Starting a script named `start.js` with parameters:
 
 ```
-pterm start start.js --port=3000 --model=google/gemma-3n-E4B-it
+pterm start start.js -- --port=3000 --model=google/gemma-3n-E4B-it
 ```
 
 Above command starts the script `start.js` with the following args:
@@ -63,6 +92,24 @@ Above command starts the script `start.js` with the following args:
   port: 3000,
   model: "google/gemma-3n-E4B-it"
 }
+```
+
+Query parameters in the script path are also passed through as script input automatically:
+
+```
+pterm start 'run.js?mode=Default'
+```
+
+Starting a relative script inside a selected app:
+
+```
+pterm start start.js --ref pinokio://127.0.0.1:42000/api/metube-pinokio.git
+```
+
+Passing a script argument named `app` without conflicting with `pterm --ref`:
+
+```
+pterm start start.js --ref pinokio://127.0.0.1:42000/api/metube-pinokio.git -- --app=my-script-value
 ```
 
 Which can be accessed in the `start.js` script, for example:
@@ -90,7 +137,11 @@ Stops a script if running:
 
 ```
 pterm stop <script_path>
+pterm stop <script_path> --ref <pinokio_ref>
+pterm stop <pinokio_ref>
 ```
+
+With `--ref`, prefer relative script paths like `start.js`. `~/...` expansion is only local.
 
 
 ### example
@@ -101,6 +152,18 @@ Stop the `start.js` script if it's running:
 pterm stop start.js
 ```
 
+Stop a relative script inside a selected app:
+
+```
+pterm stop start.js --ref pinokio://127.0.0.1:42000/api/metube-pinokio.git
+```
+
+Stop all running scripts for an app:
+
+```
+pterm stop pinokio://127.0.0.1:42000/api/metube-pinokio.git
+```
+
 ## run
 
 Run a launcher. Equivalent to the user visiting a launcher page. By default it will run whichever script is the current launcher default. If the launcher exposes no explicit default, you can provide repeated `--default` selectors and Pinokio will match the first selector that exists in the launcher's current menu state.
@@ -109,6 +172,7 @@ Run a launcher. Equivalent to the user visiting a launcher page. By default it w
 
 ```
 pterm run <launcher_path_or_uri> [--default <selector>]... [--open]
+pterm run <pinokio_ref> [--default <selector>]... [--open]
 ```
 
 - `--open`: (optional) open URL results in the browser. Default behavior is to print the URL to stdout without opening a browser.
@@ -143,7 +207,16 @@ pterm run ~/pinokio/api/facefusion-pinokio.git \
   --default install.js
 ```
 
-Launch a script directly with query parameters. Query parameters are passed through as script input automatically.
+Run an installed app by Pinokio ref:
+
+```
+pterm run pinokio://192.168.86.26:42000/api/facefusion-pinokio.git \
+  --default 'run.js?mode=Default' \
+  --default run.js \
+  --default install.js
+```
+
+For direct script execution with query parameters, use `pterm start`. Query parameters are passed through as script input automatically.
 
 ```
 pterm start 'run.js?mode=Default'
@@ -272,14 +345,37 @@ pterm which node
 pterm which git --json
 ```
 
+## home
+
+Get `PINOKIO_HOME`.
+
+### syntax
+
+```
+pterm home [--json]
+```
+
+- `--json`: (optional) print the raw JSON response instead of only the path.
+
+### examples
+
+```
+pterm home
+```
+
+```
+pterm home --json
+```
+
 ## status
 
-Get app status by app id.
+Get app status by app id or Pinokio ref.
 
 ### syntax
 
 ```
 pterm status <app_id> [--probe] [--timeout=<ms>]
+pterm status <pinokio_ref> [--probe] [--timeout=<ms>]
 ```
 
 - `--probe`: (optional) actively probe app health.
@@ -293,6 +389,10 @@ pterm status comfyanonymous-comfyui
 
 ```
 pterm status comfyanonymous-comfyui --probe --timeout=5000
+```
+
+```
+pterm status pinokio://192.168.86.26:42000/api/comfyanonymous-comfyui --probe --timeout=5000
 ```
 
 ## stars
@@ -350,12 +450,13 @@ pterm unstar comfyanonymous-comfyui
 
 ## logs
 
-Get app logs by app id.
+Get app logs by app id or Pinokio ref.
 
 ### syntax
 
 ```
 pterm logs <app_id> [--script=<name>] [--tail=<lines>]
+pterm logs <pinokio_ref> [--script=<name>] [--tail=<lines>]
 ```
 
 - `--script`: (optional) filter to a script.
@@ -371,11 +472,15 @@ pterm logs comfyanonymous-comfyui
 pterm logs comfyanonymous-comfyui --script=start --tail=200
 ```
 
+```
+pterm logs pinokio://192.168.86.26:42000/api/comfyanonymous-comfyui --script=start --tail=200
+```
+
 ## filepicker
 
 Display a file picker dialog, which lets the user select one or more file or folder paths, powered by tkinter.
 
-This API is NOT for uploading the actual files but for submitting file paths.
+This API is NOT for uploading the actual files but for submitting file paths. Use `pterm upload <pinokio_ref> <file...>` when a remote app needs real files staged onto its machine.
 
 ### syntax
 
@@ -408,12 +513,6 @@ The most basic command lets users select a single file:
 pterm filepicker
 ```
 
-which is equivalent to:
-
-```
-pterm filepicker --type=file
-```
-
 #### Select multiple files
 
 ```
@@ -436,6 +535,28 @@ pterm filepicker --filetype='images/*.png,*.jpg,*.jpeg'
 
 ```
 pterm filepicker --filetype='images/*.png,*.jpg,*.jpeg' --filetype='docs/*.pdf'
+```
+
+## upload
+
+Stage one or more local files onto the selected app's machine and return remote filesystem paths that can be passed to path-based tasks.
+
+### syntax
+
+```
+pterm upload <app_id|pinokio_ref> <file...>
+```
+
+Quoted `~/...` file paths are expanded locally before upload.
+
+### examples
+
+```
+pterm upload facefusion-pinokio.git ./face.jpg ./video.mp4
+```
+
+```
+pterm upload pinokio://192.168.86.26:42000/api/facefusion-pinokio.git ./face.jpg ./video.mp4
 ```
 
 ## clipboard

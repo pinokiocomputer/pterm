@@ -41,6 +41,34 @@ function normalizeBaseUrl(value) {
   }
 }
 
+function buildExplicitHttpBaseUrl(target) {
+  if (!target) {
+    return null
+  }
+  if (typeof target === 'string') {
+    const normalized = normalizeBaseUrl(target)
+    if (normalized) {
+      return normalized
+    }
+    const host = formatHostForUrl(target)
+    if (!host) {
+      return null
+    }
+    return normalizeBaseUrl(`${DEFAULT_PROTOCOL}://${host}:${DEFAULT_PORT}`)
+  }
+  if (typeof target !== 'object') {
+    return null
+  }
+  const protocol = target.protocol === 'https' ? 'https' : DEFAULT_PROTOCOL
+  const host = formatHostForUrl(target.host)
+  if (!host) {
+    return null
+  }
+  const rawPort = Number.parseInt(String(target.port), 10)
+  const port = Number.isFinite(rawPort) && rawPort > 0 ? rawPort : DEFAULT_PORT
+  return normalizeBaseUrl(`${protocol}://${host}:${port}`)
+}
+
 function readStoredAccessBaseUrl() {
   try {
     const raw = fs.readFileSync(CONFIG_PATH, 'utf8')
@@ -93,7 +121,11 @@ async function canReachControlPlane(baseUrl) {
   }
 }
 
-async function resolveHttpBaseUrl() {
+async function resolveHttpBaseUrl(target) {
+  const explicitBaseUrl = buildExplicitHttpBaseUrl(target)
+  if (explicitBaseUrl) {
+    return explicitBaseUrl
+  }
   if (!resolvedHttpBaseUrlPromise) {
     resolvedHttpBaseUrlPromise = (async () => {
       if (await canReachControlPlane(DEFAULT_BASE_URL)) {
@@ -110,8 +142,8 @@ async function resolveHttpBaseUrl() {
   }
 }
 
-async function resolveWsBaseUrl() {
-  const httpBaseUrl = await resolveHttpBaseUrl()
+async function resolveWsBaseUrl(target) {
+  const httpBaseUrl = await resolveHttpBaseUrl(target)
   const normalized = normalizeBaseUrl(httpBaseUrl)
   if (!normalized) {
     return `ws://${DEFAULT_HOST}:${DEFAULT_PORT}`
@@ -123,6 +155,8 @@ async function resolveWsBaseUrl() {
 
 module.exports = {
   DEFAULT_BASE_URL,
+  DEFAULT_PORT,
+  buildExplicitHttpBaseUrl,
   readStoredAccessBaseUrl,
   resolveHttpBaseUrl,
   resolveWsBaseUrl,
