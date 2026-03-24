@@ -358,6 +358,32 @@ class Util {
     let response = await axios.post(`${baseUrl}/go`, { url })
     return response
   }
+  async open(argv) {
+    if (argv._.length <= 1) {
+      console.error("required argument: <url>")
+      process.exitCode = 1
+      return
+    }
+    const url = String(argv._[1] || '').trim()
+    if (!url) {
+      console.error("required argument: <url>")
+      process.exitCode = 1
+      return
+    }
+    const payload = { url }
+    if (typeof argv.peer === 'string' && argv.peer.trim()) {
+      payload.peer = argv.peer.trim()
+    }
+    if (typeof argv.surface === 'string' && argv.surface.trim()) {
+      payload.surface = argv.surface.trim()
+    }
+    if (typeof argv.preset === 'string' && argv.preset.trim()) {
+      payload.preset = argv.preset.trim()
+    }
+    const baseUrl = await resolveHttpBaseUrl()
+    const response = await axios.post(`${baseUrl}/pinokio/open`, payload)
+    this.printJson(response.data)
+  }
   async appDownload(argv) {
     if (argv._.length <= 1) {
       console.error("required argument: <uri>")

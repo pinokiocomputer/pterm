@@ -34,6 +34,15 @@ const argv = yargs(hideBin(process.argv))
     type: 'string',
     array: true
   })
+  .option('peer', {
+    type: 'string'
+  })
+  .option('surface', {
+    type: 'string'
+  })
+  .option('preset', {
+    type: 'string'
+  })
   .option('ref', {
     type: 'string'
   })
@@ -115,6 +124,8 @@ const fetchPinokioVersion = async () => {
       await util.status(argv)
     } else if (cmd === "logs") {
       await util.logs(argv)
+    } else if (cmd === "open") {
+      await util.open(argv)
     } else if (cmd === "stop") {
       await script.stop(argv)
     } else if (cmd === "start") {

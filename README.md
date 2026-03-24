@@ -59,6 +59,51 @@ How refs are used:
 - `pterm` does not connect directly to the app endpoint described by the ref
 - `pterm` talks to the local Pinokio control plane, and the local control plane resolves or forwards the ref to the target Pinokio node as needed
 
+## open
+
+Open a URL on the local Pinokio node or on a connected peer node.
+
+### syntax
+
+```
+pterm open <url> [--peer <peer>] [--surface browser|popup] [--preset center-small|center-medium|center-large|fullscreen]
+```
+
+- `--peer`: optional target Pinokio node. May be a peer host, `host:port`, or peer name.
+- `--surface`: optional UI surface. `popup` requests a Pinokio popup window. `browser` forces the system browser. Default is popup-preferred.
+- `--preset`: optional popup size preset. Only applies when popup is used.
+
+Behavior:
+
+- `pterm` still talks to the local Pinokio control plane first
+- if `--peer` is set, the local node forwards the open request to that peer
+- if `--peer` is set, the URL is opened from that peer node's point of view, so `http://127.0.0.1:7860` means the peer's loopback
+- by default, `pterm open` prefers a Pinokio popup window
+- on a full Pinokio desktop node, the default opens a desktop popup
+- on a server-only or minimal node, the default automatically falls back to opening the system browser
+- default popup preset is `center-medium`
+- `center-medium` opens centered on the active display using roughly 64% of screen width and 72% of screen height, with minimum size `900x700`
+
+### examples
+
+Open a URL locally with the default popup-preferred behavior:
+
+```
+pterm open http://127.0.0.1:7860
+```
+
+Force the system browser instead of the default popup-preferred behavior:
+
+```
+pterm open http://127.0.0.1:7860 --surface browser
+```
+
+Open a URL on a peer node:
+
+```
+pterm open http://127.0.0.1:7860 --peer 192.168.86.26
+```
+
 ## start
 
 Start a pinokio script. `pterm` options go before `--`. Script args go after `--`.
